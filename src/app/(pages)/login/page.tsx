@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import { RegisterFormData, validateRegisterForm, ValidationErrors } from '@/libs/validations/validation';
+import { LoginFormData, validateLoginForm, ValidationErrors } from '@/libs/validations/validation';
+import Link from 'next/link';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
 
@@ -15,22 +16,29 @@ const api = axios.create({
 });
 
 const authService = {
-    register: async (userData: RegisterFormData) => {
-        const response = await api.post('/auth/register', userData);
+    login: async (userData: LoginFormData) => {
+        const response = await api.post('/auth/login', userData);
         return response.data;
     },
 };
 
-export default function RegisterPage() {
+export default function LoginPage() {
     const router = useRouter();
-    const [formData, setFormData] = useState<RegisterFormData>({
+    const searchParams = useSearchParams();
+    const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: '',
-        number: '',
     });
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [isLoading, setIsLoading] = useState(false);
     const [serverError, setServerError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+
+    useEffect(() => {
+        if (searchParams.get('registered') === 'true') {
+            setSuccessMessage('Registration successful! Please log in to continue.');
+        }
+    }, [searchParams]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -39,20 +47,31 @@ export default function RegisterPage() {
             [name]: value,
         }));
 
-        // clear error when user starts typing
+        // clear error when user starts typingg
         if (errors[name as keyof ValidationErrors]) {
             setErrors(prev => ({
                 ...prev,
                 [name]: undefined,
             }));
         }
+
+        // clear server error when user starts typing
+        if (serverError) {
+            setServerError('');
+        }
+
+        // clear success message when user starts typing
+        if (successMessage) {
+            setSuccessMessage('');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setServerError('');
+        setSuccessMessage('');
 
-        const validationErrors = validateRegisterForm(formData);
+        const validationErrors = validateLoginForm(formData);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
@@ -61,29 +80,52 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            await authService.register(formData);
-            router.push('/login?registered=true');
+            const response = await authService.login(formData);
+
+
+            if (response.token) {
+                localStorage.setItem('authToken', response.token);
+                localStorage.setItem('user', JSON.stringify(response.user));
+            }
+
+            router.push('/dashboard');
         } catch (error: any) {
             setServerError(
                 error.response?.data?.message ||
                 error.message ||
-                'Registration failed. Please try again.'
+                'Login failed. Please check your credentials and try again.'
             );
         } finally {
             setIsLoading(false);
         }
     };
 
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Create your account
+                        Sign in to your account
                     </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Or{' '}
+                        <Link
+                            href="/register"
+                            className="font-medium text-blue-600 hover:text-blue-500"
+                        >
+                            create a new account
+                        </Link>
+                    </p>
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {successMessage && (
+                        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                            {successMessage}
+                        </div>
+                    )}
+
                     {serverError && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                             {serverError}
@@ -92,7 +134,7 @@ export default function RegisterPage() {
 
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 ">
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                 Email address
                             </label>
                             <input
@@ -109,7 +151,7 @@ export default function RegisterPage() {
                                 placeholder="Enter your email"
                             />
                             {errors.email && (
-                                <p className="mt-1 text-sm text-red-600 ">{errors.email}</p>
+                                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                             )}
                         </div>
 
@@ -121,7 +163,7 @@ export default function RegisterPage() {
                                 id="password"
                                 name="password"
                                 type="password"
-                                autoComplete="new-password"
+                                autoComplete="current-password"
                                 required
                                 value={formData.password}
                                 onChange={handleInputChange}
@@ -134,27 +176,25 @@ export default function RegisterPage() {
                                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                             )}
                         </div>
+                    </div>
 
-                        <div>
-                            <label htmlFor="number" className="block text-sm font-medium text-gray-700">
-                                Phone Number
-                            </label>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
                             <input
-                                id="number"
-                                name="number"
-                                type="tel"
-                                autoComplete="tel"
-                                required
-                                value={formData.number}
-                                onChange={handleInputChange}
-                                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                                    errors.number ? 'border-red-300' : 'border-gray-300'
-                                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                                placeholder="Enter your phone number"
+                                id="remember-me"
+                                name="remember-me"
+                                type="checkbox"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
-                            {errors.number && (
-                                <p className="mt-1 text-sm text-red-600">{errors.number}</p>
-                            )}
+                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <div className="text-sm">
+                            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                                Forgot your password?
+                            </a>
                         </div>
                     </div>
 
@@ -168,19 +208,24 @@ export default function RegisterPage() {
                                     : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
                             }`}
                         >
-                            {isLoading ? 'Creating account...' : 'Create account'}
+                            {isLoading ? 'Signing in...' : 'Sign in'}
                         </button>
                     </div>
 
-                    <div className="text-center">
-                        <a
-                            href="/login"
-                            className="text-blue-600 hover:text-blue-500 text-sm"
-                        >
-                            Already have an account? Sign in
-                        </a>
-                    </div>
+
                 </form>
+
+                <div className="text-center">
+                    <p className="text-sm text-gray-600">
+                        Don't have an account?{' '}
+                        <Link
+                            href="/register"
+                            className="font-medium text-blue-600 hover:text-blue-500"
+                        >
+                            Sign up here
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

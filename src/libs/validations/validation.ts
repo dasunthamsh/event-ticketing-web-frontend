@@ -4,6 +4,11 @@ export interface RegisterFormData {
     number: string;
 }
 
+export interface LoginFormData {
+    email: string;
+    password: string;
+}
+
 export interface ValidationErrors {
     email?: string;
     password?: string;
@@ -64,6 +69,19 @@ export const validateRegisterForm = (data: RegisterFormData): ValidationErrors =
 
     const numberError = validatePhoneNumber(data.number);
     if (numberError) errors.number = numberError;
+
+    return errors;
+};
+
+export const validateLoginForm = (data: LoginFormData): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    const emailError = validateEmail(data.email);
+    if (emailError) errors.email = emailError;
+
+    if (!data.password) {
+        errors.password = 'Password is required';
+    }
 
     return errors;
 };
