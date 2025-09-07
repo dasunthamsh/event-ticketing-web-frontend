@@ -2,22 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { apiClient } from '@/libs/network';
 import { RegisterFormData, validateRegisterForm, ValidationErrors } from '@/libs/validations/validation';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
 
 const authService = {
     register: async (userData: RegisterFormData) => {
-        const response = await api.post('/auth/register', userData);
-        return response.data;
+        // Add static role value to the request data
+        const requestData = {
+            ...userData,
+            role: 'customer'
+        };
+
+        return await apiClient.post('/auth/register', requestData);
     },
 };
 
@@ -26,7 +22,8 @@ export default function RegisterPage() {
     const [formData, setFormData] = useState<RegisterFormData>({
         email: '',
         password: '',
-        number: '',
+        firstName: '',
+        lastName: '',
     });
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +62,7 @@ export default function RegisterPage() {
             router.push('/login?registered=true');
         } catch (error: any) {
             setServerError(
-                error.response?.data?.message ||
+                error.data?.message ||
                 error.message ||
                 'Registration failed. Please try again.'
             );
@@ -81,6 +78,9 @@ export default function RegisterPage() {
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                         Create your account
                     </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Join us as a customer
+                    </p>
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -91,8 +91,54 @@ export default function RegisterPage() {
                     )}
 
                     <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                                    First Name
+                                </label>
+                                <input
+                                    id="firstName"
+                                    name="firstName"
+                                    type="text"
+                                    autoComplete="given-name"
+                                    required
+                                    value={formData.firstName}
+                                    onChange={handleInputChange}
+                                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                                        errors.firstName ? 'border-red-300' : 'border-gray-300'
+                                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                                    placeholder="First name"
+                                />
+                                {errors.firstName && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                                    Last Name
+                                </label>
+                                <input
+                                    id="lastName"
+                                    name="lastName"
+                                    type="text"
+                                    autoComplete="family-name"
+                                    required
+                                    value={formData.lastName}
+                                    onChange={handleInputChange}
+                                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
+                                        errors.lastName ? 'border-red-300' : 'border-gray-300'
+                                    } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                                    placeholder="Last name"
+                                />
+                                {errors.lastName && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                                )}
+                            </div>
+                        </div>
+
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 ">
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                                 Email address
                             </label>
                             <input
@@ -109,7 +155,7 @@ export default function RegisterPage() {
                                 placeholder="Enter your email"
                             />
                             {errors.email && (
-                                <p className="mt-1 text-sm text-red-600 ">{errors.email}</p>
+                                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                             )}
                         </div>
 
@@ -132,28 +178,6 @@ export default function RegisterPage() {
                             />
                             {errors.password && (
                                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label htmlFor="number" className="block text-sm font-medium text-gray-700">
-                                Phone Number
-                            </label>
-                            <input
-                                id="number"
-                                name="number"
-                                type="tel"
-                                autoComplete="tel"
-                                required
-                                value={formData.number}
-                                onChange={handleInputChange}
-                                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                                    errors.number ? 'border-red-300' : 'border-gray-300'
-                                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                                placeholder="Enter your phone number"
-                            />
-                            {errors.number && (
-                                <p className="mt-1 text-sm text-red-600">{errors.number}</p>
                             )}
                         </div>
                     </div>

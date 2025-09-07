@@ -2,23 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { apiClient } from '@/libs/network';
 import { LoginFormData, validateLoginForm, ValidationErrors } from '@/libs/validations/validation';
 import Link from 'next/link';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
-
 const authService = {
     login: async (userData: LoginFormData) => {
-        const response = await api.post('/auth/login', userData);
-        return response.data;
+        return await apiClient.post('/auth/login', userData);
     },
 };
 
@@ -47,7 +37,6 @@ export default function LoginPage() {
             [name]: value,
         }));
 
-        // clear error when user starts typingg
         if (errors[name as keyof ValidationErrors]) {
             setErrors(prev => ({
                 ...prev,
@@ -55,12 +44,10 @@ export default function LoginPage() {
             }));
         }
 
-        // clear server error when user starts typing
         if (serverError) {
             setServerError('');
         }
 
-        // clear success message when user starts typing
         if (successMessage) {
             setSuccessMessage('');
         }
@@ -82,7 +69,6 @@ export default function LoginPage() {
         try {
             const response = await authService.login(formData);
 
-
             if (response.token) {
                 localStorage.setItem('authToken', response.token);
                 localStorage.setItem('user', JSON.stringify(response.user));
@@ -91,7 +77,7 @@ export default function LoginPage() {
             router.push('/dashboard');
         } catch (error: any) {
             setServerError(
-                error.response?.data?.message ||
+                error.data?.message ||
                 error.message ||
                 'Login failed. Please check your credentials and try again.'
             );
@@ -99,7 +85,6 @@ export default function LoginPage() {
             setIsLoading(false);
         }
     };
-
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -211,8 +196,6 @@ export default function LoginPage() {
                             {isLoading ? 'Signing in...' : 'Sign in'}
                         </button>
                     </div>
-
-
                 </form>
 
                 <div className="text-center">

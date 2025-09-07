@@ -1,7 +1,8 @@
 export interface RegisterFormData {
     email: string;
     password: string;
-    number: string;
+    firstName: string;
+    lastName: string;
 }
 
 export interface LoginFormData {
@@ -12,7 +13,8 @@ export interface LoginFormData {
 export interface ValidationErrors {
     email?: string;
     password?: string;
-    number?: string;
+    firstName?: string;
+    lastName?: string;
 }
 
 export const validateEmail = (email: string): string | undefined => {
@@ -44,15 +46,17 @@ export const validatePassword = (password: string): string | undefined => {
     return undefined;
 };
 
-export const validatePhoneNumber = (number: string): string | undefined => {
-    if (!number) {
-        return 'Phone number is required';
+export const validateName = (name: string, fieldName: string): string | undefined => {
+    if (!name) {
+        return `${fieldName} is required`;
     }
 
-    // Basic phone number validation - adjust based on your requirements
-    const phoneRegex = /^\+?[0-9]{10,15}$/;
-    if (!phoneRegex.test(number.replace(/[\s\-\(\)]/g, ''))) {
-        return 'Please enter a valid phone number';
+    if (name.length < 2) {
+        return `${fieldName} must be at least 2 characters long`;
+    }
+
+    if (!/^[a-zA-Z]+$/.test(name)) {
+        return `${fieldName} can only contain letters`;
     }
 
     return undefined;
@@ -67,8 +71,11 @@ export const validateRegisterForm = (data: RegisterFormData): ValidationErrors =
     const passwordError = validatePassword(data.password);
     if (passwordError) errors.password = passwordError;
 
-    const numberError = validatePhoneNumber(data.number);
-    if (numberError) errors.number = numberError;
+    const firstNameError = validateName(data.firstName, 'First name');
+    if (firstNameError) errors.firstName = firstNameError;
+
+    const lastNameError = validateName(data.lastName, 'Last name');
+    if (lastNameError) errors.lastName = lastNameError;
 
     return errors;
 };
