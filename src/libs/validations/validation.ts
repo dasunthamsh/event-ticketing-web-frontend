@@ -17,6 +17,7 @@ export interface ValidationErrors {
     lastName?: string;
 }
 
+
 export const validateEmail = (email: string): string | undefined => {
     if (!email) {
         return 'Email is required';
@@ -92,3 +93,7 @@ export const validateLoginForm = (data: LoginFormData): ValidationErrors => {
 
     return errors;
 };
+
+export interface ManagementLoginFormData extends LoginFormData {
+    userType: 'admin' | 'organizer';
+}
