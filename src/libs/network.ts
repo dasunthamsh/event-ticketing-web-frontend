@@ -24,14 +24,21 @@ export const apiClient = {
         }
     },
 
-    post: async <T>(endpoint: string, data: any): Promise<T> => {
+    post: async <T>(endpoint: string, data: any, options?: RequestInit): Promise<T> => {
         try {
+            const isFormData = data instanceof FormData;
+            const headers: HeadersInit = isFormData
+                ? {}
+                : { 'Content-Type': 'application/json' };
+
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    ...headers,
+                    ...options?.headers,
                 },
-                body: JSON.stringify(data),
+                body: isFormData ? data : JSON.stringify(data),
+                ...options,
             });
 
             if (!response.ok) {
@@ -62,7 +69,6 @@ export const apiClient = {
                 throw createApiError(response.status, errorData);
             }
 
-            // For DELETE requests that might not return content
             if (response.status === 204) {
                 return {} as T;
             }
@@ -76,14 +82,21 @@ export const apiClient = {
         }
     },
 
-    put: async <T>(endpoint: string, data: any): Promise<T> => {
+    put: async <T>(endpoint: string, data: any, options?: RequestInit): Promise<T> => {
         try {
+            const isFormData = data instanceof FormData;
+            const headers: HeadersInit = isFormData
+                ? {}
+                : { 'Content-Type': 'application/json' };
+
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
+                    ...headers,
+                    ...options?.headers,
                 },
-                body: JSON.stringify(data),
+                body: isFormData ? data : JSON.stringify(data),
+                ...options,
             });
 
             if (!response.ok) {
