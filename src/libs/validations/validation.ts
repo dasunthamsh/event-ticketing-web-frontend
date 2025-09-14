@@ -44,6 +44,8 @@ export interface ValidationErrors {
     lastName?: string;
 }
 
+
+
 export interface EventValidationErrors {
     title?: string;
     venueName?: string;
@@ -55,6 +57,9 @@ export interface EventValidationErrors {
     categoryIds?: string;
     imageFile?: string;
 }
+
+
+
 
 
 export const validateRole = (role: string): string | undefined => {

@@ -33,6 +33,13 @@ export default function CreateEvent() {
     const [serverError, setServerError] = useState('');
     const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+    const getAuthToken = () => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('authToken');
+        }
+        return null;
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -102,6 +109,13 @@ export default function CreateEvent() {
         setIsLoading(true);
 
         try {
+            // Get the authentication token
+            const authToken = getAuthToken();
+
+            if (!authToken) {
+                throw new Error('Authentication required. Please log in again.');
+            }
+
             // Create FormData for file upload
             const formDataToSend = new FormData();
             formDataToSend.append('Title', formData.title);
@@ -121,21 +135,63 @@ export default function CreateEvent() {
                 formDataToSend.append('ImageFile', formData.imageFile);
             }
 
-            // Send to backend using FormData
-            await apiClient.post('/organizer/events', formDataToSend);
+            // Send to backend using FormData with authentication
+            await apiClient.post('/organizer/events', formDataToSend, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
 
             // Redirect to events page or show success message
             router.push('/events?created=true');
         } catch (error: any) {
-            setServerError(
-                error.data?.message ||
-                error.message ||
-                'Failed to create event. Please try again.'
-            );
+            console.error('Create event error:', error);
+
+            if (error.status === 401) {
+                setServerError('Authentication failed. Please log in again.');
+                // Optional: Redirect to login page
+                // router.push('/management-login');
+            } else {
+                setServerError(
+                    error.data?.message ||
+                    error.message ||
+                    'Failed to create event. Please try again.'
+                );
+            }
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Check if user is authenticated on component mount
+    const isAuthenticated = () => {
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('authToken');
+            const userType = localStorage.getItem('userType');
+
+            // Check if token exists and user is organizer (since this is organizer endpoint)
+            return token && userType === 'organizer';
+        }
+        return false;
+    };
+
+    // If not authenticated, show message or redirect
+    if (typeof window !== 'undefined' && !isAuthenticated()) {
+        return (
+            <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+                    <p className="text-gray-600 mb-4">You need to be logged in as an organizer to create events.</p>
+                    <button
+                        onClick={() => router.push('/management-login')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                    >
+                        Go to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">

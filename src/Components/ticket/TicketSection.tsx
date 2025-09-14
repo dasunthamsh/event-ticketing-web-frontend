@@ -1,88 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '@/libs/network';
 import TicketCard from './TicketCard';
 
-
 export interface Ticket {
-    id: string;
+    id: number;
     title: string;
-    subtitle: string;
-    cast: string[];
-    date: string;
-    time: string;
-    venue: string;
-    price: string;
+    startTime: string;
+    endTime?: string;
+    venueName: string;
+    locationCity: string;
+    locationAddress?: string;
+    price: number;
     imageUrl?: string;
     description?: string;
-    duration?: string;
-    category?: string;
+    status: number;
+    categories: string[];
 }
 
-export interface TicketDetails extends Ticket {
-    fullDescription: string;
-    castDetails: { name: string; role: string }[];
-    venueAddress: string;
-    termsConditions: string[];
-    seatingPlan?: string;
+interface ApiResponse {
+    page: number;
+    pageSize: number;
+    total: number;
+    items: Ticket[];
 }
-
-// Mock data - replace with API data
-const mockTickets: Ticket[] = [
-    {
-        id: '1',
-        title: 'Wingfield Family',
-        subtitle: 'A Play by Pujitha De Mel',
-        cast: ['Chandan Seneviratne', 'Ravindra Yasas', 'Manushie Taniya', 'Bimsara Silva'],
-        date: 'Sep 14, 2025',
-        time: '06.30 PM IST',
-        venue: 'BMICH "Kamatha" Open Air',
-        price: '1,000 LKR upwards',
-        imageUrl: '/images/wingfield-family.jpg',
-        description: 'A compelling drama about the Wingfield family dynamics and relationships.',
-        duration: '2 hours 30 minutes',
-        category: 'Drama'
-    },
-    {
-        id: '2',
-        title: 'Romeo and Juliet',
-        subtitle: 'Shakespeare Classic',
-        cast: ['John Doe', 'Jane Smith', 'Mike Johnson'],
-        date: 'Oct 20, 2025',
-        time: '07.00 PM IST',
-        venue: 'Nelum Pokuna Theatre',
-        price: '1,500 LKR upwards',
-        description: 'The timeless tale of star-crossed lovers.',
-        duration: '2 hours 45 minutes',
-        category: 'Romance'
-    },
-    {
-        id: '3',
-        title: 'The Lion King',
-        subtitle: 'Musical Spectacular',
-        cast: ['David Brown', 'Sarah Wilson', 'Chris Evans'],
-        date: 'Nov 15, 2025',
-        time: '05.00 PM IST',
-        venue: 'Sugathadasa Stadium',
-        price: '2,000 LKR upwards',
-        description: 'Experience the circle of life in this magnificent musical.',
-        duration: '3 hours',
-        category: 'Musical'
-    }
-];
 
 export default function TicketSection() {
-    const [tickets] = useState<Ticket[]>(mockTickets);
+    const router = useRouter();
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        fetchTickets();
+    }, []);
+
+    const fetchTickets = async () => {
+        try {
+            setIsLoading(true);
+            setError('');
+
+            const response = await apiClient.get<ApiResponse>('/organizer/events');
+
+            // Extract tickets from the response
+            const ticketsData = response.items || [];
+
+            console.log('Fetched tickets:', ticketsData);
+
+            setTickets(ticketsData);
+        } catch (err: any) {
+            console.error('Failed to fetch tickets:', err);
+            setError(err.message || 'Failed to load events. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRetry = () => {
+        fetchTickets();
+    };
+
+    if (isLoading) {
+        return (
+            <section className="py-12 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Loading events...</p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="py-12 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center">
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md mx-auto mb-4">
+                            {error}
+                        </div>
+                        <button
+                            onClick={handleRetry}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="py-12 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Tickets Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {tickets.map((ticket) => (
-                        <TicketCard key={ticket.id} ticket={ticket} />
-                    ))}
+                {/* Section Header */}
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4">Available Events</h2>
+                    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Discover amazing events and book your tickets
+                    </p>
                 </div>
+
+                {/* Tickets Grid */}
+                {tickets.length === 0 ? (
+                    <div className="text-center py-12">
+                        <div className="text-gray-400 text-6xl mb-4">🎭</div>
+                        <h3 className="text-xl font-semibold text-gray-600 mb-2">No events available</h3>
+                        <p className="text-gray-500">Check back later for new events</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {tickets.map((ticket) => (
+                            <TicketCard key={ticket.id} ticket={ticket} />
+                        ))}
+                    </div>
+                )}
             </div>
         </section>
     );

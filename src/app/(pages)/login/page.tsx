@@ -6,9 +6,22 @@ import { apiClient } from '@/libs/network';
 import { LoginFormData, validateLoginForm, ValidationErrors } from '@/libs/validations/validation';
 import Link from 'next/link';
 
+interface LoginResponse {
+    accessToken: string;
+    refreshToken: string;
+    expiresAtUtc: string;
+    user?: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+    };
+}
+
 const authService = {
-    login: async (userData: LoginFormData) => {
-        return await apiClient.post('/auth/login', userData);
+    login: async (userData: LoginFormData): Promise<LoginResponse> => {
+        return await apiClient.post<LoginResponse>('/auth/login', userData);
     },
 };
 
@@ -69,12 +82,25 @@ export default function LoginPage() {
         try {
             const response = await authService.login(formData);
 
-            if (response.token) {
-                localStorage.setItem('authToken', response.token);
-                localStorage.setItem('user', JSON.stringify(response.user));
+            if (response.accessToken) {
+                localStorage.setItem('authToken', response.accessToken);
+                localStorage.setItem('refreshToken', response.refreshToken);
+                localStorage.setItem('tokenExpiry', response.expiresAtUtc);
+
+                // If user data is available in the response, store it
+                if (response.user) {
+                    localStorage.setItem('user', JSON.stringify(response.user));
+                } else {
+                    // Create a basic user object from the form data if not provided
+                    const userData = {
+                        email: formData.email,
+                        // Add other default user properties if needed
+                    };
+                    localStorage.setItem('user', JSON.stringify(userData));
+                }
             }
 
-            router.push('/dashboard');
+            router.push('/');
         } catch (error: any) {
             setServerError(
                 error.data?.message ||

@@ -10,8 +10,15 @@ interface ManagementLoginFormData extends LoginFormData {
     userType: 'admin' | 'organizer';
 }
 
+interface LoginResponse {
+    accessToken: string;
+    refreshToken: string;
+    expiresAtUtc: string;
+
+}
+
 const authService = {
-    managementLogin: async (userData: ManagementLoginFormData) => {
+    managementLogin: async (userData: ManagementLoginFormData): Promise<LoginResponse> => {
         // Send user type as part of the login request
         const loginData = {
             email: userData.email,
@@ -19,7 +26,7 @@ const authService = {
             userType: userData.userType
         };
 
-        return await apiClient.post('/auth/login', loginData);
+        return await apiClient.post<LoginResponse>('/auth/login', loginData);
     },
 };
 
@@ -73,10 +80,23 @@ export default function ManagementLoginPage() {
         try {
             const response = await authService.managementLogin(formData);
 
-            if (response.token) {
-                localStorage.setItem('authToken', response.token);
-                localStorage.setItem('user', JSON.stringify(response.user));
+            if (response.accessToken) {
+                // Store tokens
+                localStorage.setItem('authToken', response.accessToken);
+                localStorage.setItem('refreshToken', response.refreshToken);
+                localStorage.setItem('tokenExpiry', response.expiresAtUtc);
                 localStorage.setItem('userType', formData.userType);
+
+                // If you have user data in the response, store it too
+                // localStorage.setItem('user', JSON.stringify(response.user));
+
+                // For now, let's create a basic user object from the form data
+                const userData = {
+                    email: formData.email,
+                    role: formData.userType,
+                    // Add other user properties if available
+                };
+                localStorage.setItem('user', JSON.stringify(userData));
 
                 // Redirect based on user type
                 if (formData.userType === 'admin') {
