@@ -12,7 +12,7 @@ export interface Ticket {
     locationCity: string;
     locationAddress?: string;
     price: number;
-    imageUrl?: string | null; // Make it explicit it can be null
+    imageUrl?: string | null;
     description?: string;
     status: number;
     categories: string[];

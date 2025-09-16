@@ -215,7 +215,7 @@ export const validateDateTime = (dateTime: string, fieldName: string): string | 
 
     const date = new Date(dateTime);
     if (isNaN(date.getTime())) {
-        return `Please enter a valid ${fieldName.toLowerCase()}`;
+        return `Please enter a valid date and time for ${fieldName.toLowerCase()}`;
     }
 
     if (date < new Date()) {
